@@ -5,3 +5,5 @@ logs/
 /models
 *.keras
 *.h5
+assets/
+sample/

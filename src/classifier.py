@@ -7,30 +7,30 @@ import numpy as np
 import os
 import pickle
 import re
+from utils import load_path
 
-def load_path(directory, filename):
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    model_path = os.path.join(script_dir, f"../{directory}/{filename}")
-    model_path = os.path.normpath(model_path)
-    return model_path
-    
+# loads the classification model from the models folder
 def load_classifier():
     model_path = load_path('models', 'gru_fake_news_model.keras')
     print(f"Loading model from: {model_path}")
     model = load_model(model_path)
     return model
 
+
+# loads the word2vec model for embedding the data
 def load_word2vec():
     w2v_path = load_path('models', 'word2vec_fake_news.model')
     word2vec = Word2Vec.load(w2v_path)
     return word2vec
 
+# loads the word index pkl file to input into the embedding matrix
 def load_wordindex():
     windex_path = load_path('models', 'word_index.pkl')
     with open(windex_path, "rb") as f:
         word_index = pickle.load(f)
     return word_index
 
+# preprocesses the text before tokenizing and inputing into the model
 def preprocess_text(text):
     text = text.lower()
     text = re.sub(r'[^a-zA-Z\s]', '', text)
@@ -39,26 +39,32 @@ def preprocess_text(text):
     tokens = [token for token in tokens if token not in STOPWORDS]
     return tokens
 
-
+# helper function to turn tokens into indices
 def tokens_to_indices(tokens, word_index):
     return [word_index.get(token, 0) for token in tokens]
 
+# analyzes the oov percentage of the newly inputted article compared to training dataset
 def analyze_oov(tokens, word_index):
     total = len(tokens)
     unknowns = sum(1 for t in tokens if t not in word_index)
     return unknowns, total, unknowns / total
 
-
+# pipeline to predict whether a single article is fake or not
 def predict_news(text):
+    # preprocess the new article and tokenize it
     model = load_classifier()
     word_index = load_wordindex()
     tokens = preprocess_text(text)
 
+    # analyze the OOV percentage
     oov_count, total, oov_ratio = analyze_oov(tokens, word_index)
     print(f"OOV words: {oov_count}/{total} ({oov_ratio:.2%})")
 
+    # create embeddings to input into the model
     indices = tokens_to_indices(tokens, word_index)
     padded = pad_sequences([indices], maxlen=300, padding='post')
+
+    # prediction and evaluation
     pred = model.predict(padded)[0][0]
     label = "Fake" if pred >= 0.5 else "Real"
     print(f"Prediction: {label} ({pred:.4f})")

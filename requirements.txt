@@ -8,3 +8,10 @@ ipykernel
 nltk
 gensim
 tensorboard
+fastapi
+streamlit
+uvicorn
+requests
+spacy
+transformers
+tf-keras
